@@ -102,10 +102,18 @@ const Sidebar = () => {
                     <div onClick={handleImageUpload} className='absolute opacity-0 group-hover:opacity-100 cursor-pointer top-0 left-0 bg-[rgba(0,0,0,.41)] w-full h-full rounded-full flex justify-center items-center'>
                         <IoMdCloudUpload className='text-white text-2xl' />
                     </div>
+                    {
+                        data.photoURL
+                            ?
+                            <picture className='w-[100px] h-[100px] rounded-full'>
+                                <img src={data.photoURL} alt='' className='rounded-full' />
+                            </picture>
+                            :
+                            <picture className='w-[100px] h-[100px] rounded-full'>
+                                <img src='images/demo-profile.png' alt='' className='rounded-full' />
+                            </picture>
+                    }
 
-                    <picture className='w-[100px] h-[100px] rounded-full'>
-                        <img src={data.photoURL} alt='' className='rounded-full' />
-                    </picture>
                 </div>
                 <h2 className='nunito text-white text-xl font-semibold'>{data.displayName}</h2>
                 <div className='bg-white relative after:absolute after:bg-white after:content-[""] after:top-[-16px] after:left-[-30px] after:w-[133px] after:h-[89px] z-[1] after:z-[-1] before:bg-button before:absolute before:content-[""] before:top-[-16px] before:right-[-53px] before:h-[185%] before:w-2 before:rounded-tl-3xl before:rounded-bl-3xl'>
@@ -138,7 +146,7 @@ const Sidebar = () => {
                             </div>
                             :
                             <picture className='w-28 h-28 block mx-auto '>
-                                <img src={data} alt='' className='rounded-full' />
+                                <img src={data.photoURL} alt='' className='rounded-full' />
                             </picture>
                         }
                         <input type="file" className='my-5' onChange={handleProfileUpload} />

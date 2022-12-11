@@ -5,7 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { Circles } from 'react-loader-spinner'
 import { Link, useNavigate } from 'react-router-dom';
 import { getDatabase, ref, set } from "firebase/database";
-import { userLoginInfo } from '../slices/userSlice';
+// import { userLoginInfo } from '../slices/userSlice';
 
 const Registration = () => {
   const auth = getAuth();
