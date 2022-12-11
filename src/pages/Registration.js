@@ -4,9 +4,12 @@ import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, updateP
 import { ToastContainer, toast } from 'react-toastify';
 import { Circles } from 'react-loader-spinner'
 import { Link, useNavigate } from 'react-router-dom';
+import { getDatabase, ref, set } from "firebase/database";
+import { userLoginInfo } from '../slices/userSlice';
 
 const Registration = () => {
   const auth = getAuth();
+  const db = getDatabase();
   const navigate = useNavigate();
   let [email, setEmail] = useState('');
   let [fullName, setFullName] = useState('');
@@ -72,7 +75,7 @@ const Registration = () => {
       if (email && fullName && password && re0.test(email) && re.test(password) && re2.test(password) && re3.test(password) && re4.test(password) && re5.test(password)) {
         setLoading(true);
         createUserWithEmailAndPassword(auth, email, password)
-          .then(() => {
+          .then((user) => {
             updateProfile(auth.currentUser, {
               displayName: fullName, photoURL: "images/demo-profile.jpg"
             }).then(() => {
@@ -88,6 +91,12 @@ const Registration = () => {
               }, 4000);
             }).catch((error) => {
               console.log(error);
+            }).then(() => {
+              set(ref(db, 'users/' + user.user.uid), {
+                username: user.user.displayName,
+                email: user.user.email,
+              });
+
             });
 
           })

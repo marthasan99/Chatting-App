@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { RiEyeCloseFill, RiEyeFill } from 'react-icons/ri'
 import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, } from "firebase/auth";
+import { getDatabase, ref, set } from "firebase/database";
 import { ToastContainer, toast } from 'react-toastify';
 import { Circles } from 'react-loader-spinner'
 import { Link, useNavigate } from 'react-router-dom';
@@ -9,6 +10,7 @@ import { userLoginInfo } from '../slices/userSlice'
 
 const Login = () => {
     const auth = getAuth();
+    const db = getDatabase();
     const provider = new GoogleAuthProvider();
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -90,8 +92,17 @@ const Login = () => {
         }
     }
     let handleGoogleSignIn = () => {
-        signInWithPopup(auth, provider).then(() => {
-            navigate("/");
+        signInWithPopup(auth, provider).then((user) => {
+            set(ref(db, 'users/' + user.user.uid), {
+                username: user.user.displayName,
+                email: user.user.email,
+            });
+            toast.success("Login Successful");
+            dispatch(userLoginInfo(user.user));
+            localStorage.setItem("userInfo", JSON.stringify(user.user));
+            setTimeout(() => {
+                navigate("/")
+            }, 5000);
         })
     }
 

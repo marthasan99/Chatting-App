@@ -21,7 +21,6 @@ const Home = () => {
     let data = useSelector((state) => state.userLoginInfo.userInfo);
     let [verified, setVerified] = useState(false);
 
-
     onAuthStateChanged(auth, (user) => {
         if (user.emailVerified) {
             setVerified(true);
@@ -33,10 +32,6 @@ const Home = () => {
         if (!data) {
             navigate("/login");
         }
-        if (auth.currentUser == null) {
-            navigate("/login");
-        }
-        console.log(auth)
     }, [])
 
     return (
