@@ -1,7 +1,6 @@
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux';
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { userLoginInfo } from '../slices/userSlice';
 import BlockedUser from '../components/BlockedUser';
@@ -38,7 +37,7 @@ const Home = () => {
         <>
             {verified ? <div className='flex justify-between h-screen w-full'>
                 <div className='w-[186px] pl-8'>
-                    <Sidebar />
+                    <Sidebar active="home" />
                 </div>
                 <div className='w-[427px]'>
                     <Search />

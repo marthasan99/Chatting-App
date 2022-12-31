@@ -5,7 +5,7 @@ import { ImExit } from 'react-icons/im'
 import { IoMdCloudUpload } from 'react-icons/io'
 import { getAuth, signOut, updateProfile } from "firebase/auth";
 import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { userLoginInfo } from '../slices/userSlice'
 import Cropper from "react-cropper";
@@ -15,7 +15,7 @@ import { useState } from 'react'
 import { ColorRing } from 'react-loader-spinner'
 
 
-const Sidebar = () => {
+const Sidebar = ({ active }) => {
     const auth = getAuth();
     const storage = getStorage();
 
@@ -116,11 +116,25 @@ const Sidebar = () => {
 
                 </div>
                 <h2 className='nunito text-white text-xl font-semibold'>{data.displayName}</h2>
-                <div className='bg-white relative after:absolute after:bg-white after:content-[""] after:top-[-16px] after:left-[-30px] after:w-[133px] after:h-[89px] z-[1] after:z-[-1] before:bg-button before:absolute before:content-[""] before:top-[-16px] before:right-[-53px] before:h-[185%] before:w-2 before:rounded-tl-3xl before:rounded-bl-3xl'>
-                    <AiOutlineHome className='text-5xl text-button z-10 cursor-pointer' />
+                <div className={active == 'home'
+                    ?
+                    'bg-white relative after:absolute after:bg-white after:content-[""] after:top-[-16px] after:left-[-30px] after:w-[133px] after:h-[89px] z-[1] after:z-[-1] before:bg-button before:absolute before:content-[""] before:top-[-16px] before:right-[-53px] before:h-[185%] before:w-2 before:rounded-tl-3xl before:rounded-bl-3xl'
+                    : ''}>
+                    <Link to='/'>
+                        <AiOutlineHome className={active == 'home' ?
+                            'text-5xl text-button z-10 cursor-pointer'
+                            : 'text-[#BAD1FF] text-5xl block cursor-pointer'} />
+                    </Link>
                 </div>
-                <div>
-                    <AiFillMessage className='text-[#BAD1FF] text-5xl block cursor-pointer' />
+                <div className={active == 'message'
+                    ?
+                    'bg-white relative after:absolute after:bg-white after:content-[""] after:top-[-16px] after:left-[-30px] after:w-[133px] after:h-[89px] z-[1] after:z-[-1] before:bg-button before:absolute before:content-[""] before:top-[-16px] before:right-[-53px] before:h-[185%] before:w-2 before:rounded-tl-3xl before:rounded-bl-3xl'
+                    : ''}>
+                    <Link to='/message'>
+                        <AiFillMessage className={active == 'message' ?
+                            'text-5xl text-button z-10 cursor-pointer'
+                            : 'text-[#BAD1FF] text-5xl block cursor-pointer'} />
+                    </Link>
                 </div>
                 <div>
                     <FiSettings className='text-[#BAD1FF] text-5xl block cursor-pointer' />

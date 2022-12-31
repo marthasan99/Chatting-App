@@ -16,6 +16,7 @@ import {
 } from "react-router-dom";
 import ForgotPassword from './pages/ForgotPassword';
 import Chat from './pages/Chat';
+import Message from './pages/Message';
 
 const router = createBrowserRouter([
     {
@@ -37,7 +38,11 @@ const router = createBrowserRouter([
     {
         path: "/chat",
         element: <Chat />
-    }
+    },
+    {
+        path: "/message",
+        element: <Message />
+    },
 ]);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
