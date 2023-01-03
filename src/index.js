@@ -15,7 +15,6 @@ import {
     Route,
 } from "react-router-dom";
 import ForgotPassword from './pages/ForgotPassword';
-import Chat from './pages/Chat';
 import Message from './pages/Message';
 
 const router = createBrowserRouter([
@@ -34,10 +33,6 @@ const router = createBrowserRouter([
     {
         path: "/forgot-password",
         element: <ForgotPassword />,
-    },
-    {
-        path: "/chat",
-        element: <Chat />
     },
     {
         path: "/message",

@@ -97,13 +97,13 @@ const UserList = () => {
 
                     ?
                     filterUserList.map((item) => (
-                        <div className='flex justify-start items-center pt-4'>
+                        <div className='flex justify-between items-center pt-4'>
                             <div className='pr-3.5'>
                                 <picture>
                                     <img src='images/group-list.png' alt='' />
                                 </picture>
                             </div>
-                            <div className='pr-[51px]'>
+                            <div className=''>
                                 <h4 className='font-poppins text-lg font-semibold'>{item.username}</h4>
                                 <p className='font-poppins text-sm font-medium text-sub'>{item.email}</p>
                             </div>
@@ -129,13 +129,13 @@ const UserList = () => {
                     :
 
                     userList.map((item) => (
-                        <div className='flex justify-start items-center pt-4'>
+                        <div className='flex justify-between items-center pt-4'>
                             <div className='pr-3.5'>
                                 <picture>
                                     <img src='images/group-list.png' alt='' />
                                 </picture>
                             </div>
-                            <div className='pr-[51px]'>
+                            <div className=''>
                                 <h4 className='font-poppins text-lg font-semibold'>{item.username}</h4>
                                 <p className='font-poppins text-sm font-medium text-sub'>{item.email}</p>
                             </div>
