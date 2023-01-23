@@ -7,8 +7,6 @@ import Sidebar from "../components/Sidebar";
 import { useSelector } from "react-redux";
 
 const Message = () => {
-  let data = useSelector((state) => state.userLoginInfo.userInfo);
-
   return (
     <div className="flex h-screen w-full justify-between">
       <div className="w-[186px] pl-8">

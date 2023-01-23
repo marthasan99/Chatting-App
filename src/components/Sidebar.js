@@ -33,8 +33,7 @@ const Sidebar = ({ active }) => {
   const [imageUploadModal, setImageUploadModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // let data = useSelector(state => state.userLoginInfo.userInfo.photoURL);
-  let data = auth.currentUser;
+  let data = useSelector((state) => state.userLoginInfo.userInfo);
 
   const handleProfileUpload = (e) => {
     e.preventDefault();
@@ -56,7 +55,7 @@ const Sidebar = ({ active }) => {
     if (typeof cropper !== "undefined") {
       setCropData(cropper.getCroppedCanvas().toDataURL());
 
-      const storageRef = ref(storage, auth.currentUser.uid);
+      const storageRef = ref(storage, `profileImage${Math.random()}`);
       const message4 = cropper.getCroppedCanvas().toDataURL();
       uploadString(storageRef, message4, "data_url").then((snapshot) => {
         getDownloadURL(storageRef).then((downloadURL) => {

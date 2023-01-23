@@ -1,12 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import {
-  getDatabase,
-  ref,
-  onValue,
-  set,
-  remove,
-  push,
-} from "firebase/database";
+import { getDatabase, ref, onValue, set, push } from "firebase/database";
+
 import {
   BsThreeDotsVertical,
   BsFillTriangleFill,
@@ -28,11 +22,13 @@ import {
   uploadBytesResumable,
   getDownloadURL,
   uploadString,
+  uploadBytes,
 } from "firebase/storage";
 import moment from "moment/moment";
 import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import { ColorRing } from "react-loader-spinner";
+import { AudioRecorder } from "react-audio-voice-recorder";
 
 const Chat = () => {
   const db = getDatabase();
@@ -43,8 +39,10 @@ const Chat = () => {
   let [messageInput, setMessageInput] = useState("");
   let [messageInputErr, setMessageInputErr] = useState("");
   let [messageList, setMessageList] = useState([]);
+  let [blob, setBLob] = useState([]);
   const [imageUploadModal, setImageUploadModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [audioUrl, setAudioUrl] = useState("");
 
   const [image, setImage] = useState();
   const [cropData, setCropData] = useState("#");
@@ -192,7 +190,7 @@ const Chat = () => {
     if (typeof cropper !== "undefined") {
       setCropData(cropper.getCroppedCanvas().toDataURL());
 
-      const storageRef = sref(storage, "aaaa" + Math.random());
+      const storageRef = sref(storage, "chatImage" + Math.random());
       const message4 = cropper.getCroppedCanvas().toDataURL();
       uploadString(storageRef, message4, "data_url").then((snapshot) => {
         getDownloadURL(storageRef).then((downloadURL) => {
@@ -221,6 +219,34 @@ const Chat = () => {
     setImage("");
     setCropData("#");
     setCropper("");
+  };
+  const addAudioElement = (blob) => {
+    const url = URL.createObjectURL(blob);
+    setAudioUrl(url);
+    setBLob(blob);
+  };
+  let handleAudioUpload = () => {
+    const aduioStorageRef = sref(storage, `audio${Math.random()}`);
+
+    uploadBytes(aduioStorageRef, blob).then((snapshot) => {
+      console.log("Uploaded a blob or file!");
+      getDownloadURL(aduioStorageRef).then((downloadURL) => {
+        console.log(downloadURL);
+
+        set(push(ref(db, "singleMessage")), {
+          whoSendId: data.uid,
+          whoSendName: data.displayName,
+          whoReceiveId: activeChatName.active.id,
+          whoReceiveName: activeChatName.active.name,
+          date: `${new Date().getFullYear()}-${
+            new Date().getMonth() + 1
+          }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
+          audio: downloadURL,
+        }).then(() => {
+          setAudioUrl("");
+        });
+      });
+    });
   };
   return (
     <>
@@ -263,7 +289,7 @@ const Chat = () => {
                         {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
                       </p>
                     </div>
-                  ) : (
+                  ) : item.image ? (
                     <div className="mr-6 py-2 text-right">
                       <p className="relative mr-2.5 inline-block bg-button px-6 py-[13px] text-left font-poppins text-base font-medium text-white">
                         <ModalImage
@@ -272,6 +298,16 @@ const Chat = () => {
                           large={item.image}
                           alt="Image"
                         />
+                        <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                      </p>
+                      <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                        {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mr-6 py-2 text-right">
+                      <p className="relative mr-2.5 inline-block bg-button px-6 py-[13px] text-left font-poppins text-base font-medium text-white">
+                        <audio controls src={item.audio}></audio>
                         <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
                       </p>
                       <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
@@ -289,7 +325,7 @@ const Chat = () => {
                       {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
                     </p>
                   </div>
-                ) : (
+                ) : item.image ? (
                   <div className="py-2">
                     <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-6 py-[13px] font-poppins text-base font-medium">
                       <ModalImage
@@ -298,6 +334,16 @@ const Chat = () => {
                         large={item.image}
                         alt="Image"
                       />
+                      <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
+                    </p>
+                    <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                      {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="py-2">
+                    <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-6 py-[13px] font-poppins text-base font-medium">
+                      <audio src={item.audio} controls></audio>
                       <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
                     </p>
                     <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
@@ -406,43 +452,54 @@ const Chat = () => {
         </p>
         <div className="relative mt-[30px] flex py-9">
           <div className="">
-            <input
-              onChange={handleMessageInput}
-              className=" w-[500px] rounded-xl border-transparent bg-[#f1f1f1] p-4 pr-12 focus:border-transparent focus:ring-0"
-            />
+            {!audioUrl && (
+              <>
+                <input
+                  onChange={handleMessageInput}
+                  className=" w-[500px] rounded-xl border-transparent bg-[#f1f1f1] p-4 pr-12 focus:border-transparent focus:ring-0"
+                />
 
-            <BsCamera
-              onClick={() => setCameraOpen(!cameraOpen)}
-              className="absolute right-[86px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
-            />
-            <BsEmojiLaughing className="absolute right-[114px] top-[43%] text-xl text-[rgba(0,0,0,.5)]" />
+                <BsCamera
+                  onClick={() => setCameraOpen(!cameraOpen)}
+                  className="absolute right-[86px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
+                />
+                <BsEmojiLaughing className="absolute right-[114px] top-[43%] text-xl text-[rgba(0,0,0,.5)]" />
 
-            <FcGallery
-              onClick={handleImageUpload}
-              className="absolute right-[142px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
-            />
-            {record ? (
-              <BsFillMicFill
-                onClick={() => {
-                  setRecord(!record);
-                }}
-                className="absolute right-[170px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
-              />
-            ) : (
-              <BsFillMicMuteFill
-                onClick={() => {
-                  setRecord(!record);
-                }}
-                className="absolute right-[170px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
-              />
+                <FcGallery
+                  onClick={handleImageUpload}
+                  className="absolute right-[142px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
+                />
+                <AudioRecorder
+                  onRecordingComplete={(blob) => addAudioElement(blob)}
+                />
+              </>
+            )}
+            {audioUrl && (
+              <div className=" flex  h-auto w-[500px] rounded-xl border-transparent bg-white p-4 pr-12 shadow-chat focus:border-transparent focus:ring-0">
+                <audio className="" src={audioUrl} controls></audio>
+                <div
+                  className="nunito font-regular ml-3 inline cursor-pointer bg-button p-2 text-base text-white"
+                  onClick={handleAudioUpload}
+                >
+                  Send
+                </div>
+                <div
+                  className="nunito font-regular ml-3 inline cursor-pointer bg-button p-2 text-base text-white"
+                  onClick={() => setAudioUrl("")}
+                >
+                  Remove
+                </div>
+              </div>
             )}
           </div>
-          <div className="ml-5 bg-button p-4">
-            <FaTelegramPlane
-              onClick={handleMessageSend}
-              className="text-2xl text-white"
-            />
-          </div>
+          {!audioUrl && (
+            <div className="ml-5 bg-button p-4">
+              <FaTelegramPlane
+                onClick={handleMessageSend}
+                className="text-2xl text-white"
+              />
+            </div>
+          )}
         </div>
       </div>
       {cameraOpen && (
