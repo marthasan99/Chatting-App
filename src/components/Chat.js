@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
 import { getDatabase, ref, onValue, set, push } from "firebase/database";
-
 import {
   BsThreeDotsVertical,
   BsFillTriangleFill,
@@ -29,6 +28,7 @@ import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import { ColorRing } from "react-loader-spinner";
 import { AudioRecorder } from "react-audio-voice-recorder";
+import EmojiPicker from "emoji-picker-react";
 
 const Chat = () => {
   const db = getDatabase();
@@ -43,6 +43,7 @@ const Chat = () => {
   const [imageUploadModal, setImageUploadModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState("");
+  const [emoji, setEmoji] = useState(false);
 
   const [image, setImage] = useState();
   const [cropData, setCropData] = useState("#");
@@ -247,6 +248,12 @@ const Chat = () => {
         });
       });
     });
+  };
+  let handleEmoji = () => {
+    setEmoji(!emoji);
+  };
+  let handleEmojiSelect = (emoji) => {
+    setMessageInput(messageInput + emoji.emoji);
   };
   return (
     <>
@@ -457,13 +464,22 @@ const Chat = () => {
                 <input
                   onChange={handleMessageInput}
                   className=" w-[500px] rounded-xl border-transparent bg-[#f1f1f1] p-4 pr-12 focus:border-transparent focus:ring-0"
+                  value={messageInput}
                 />
 
                 <BsCamera
                   onClick={() => setCameraOpen(!cameraOpen)}
                   className="absolute right-[86px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
                 />
-                <BsEmojiLaughing className="absolute right-[114px] top-[43%] text-xl text-[rgba(0,0,0,.5)]" />
+                <BsEmojiLaughing
+                  onClick={handleEmoji}
+                  className="absolute right-[114px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
+                />
+                {emoji && (
+                  <div className="absolute top-[-414px] z-50 text-xl text-[rgba(0,0,0,.5)]">
+                    <EmojiPicker onEmojiClick={handleEmojiSelect} />
+                  </div>
+                )}
 
                 <FcGallery
                   onClick={handleImageUpload}
