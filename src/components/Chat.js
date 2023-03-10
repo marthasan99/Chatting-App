@@ -29,6 +29,7 @@ import "cropperjs/dist/cropper.css";
 import { ColorRing } from "react-loader-spinner";
 import { AudioRecorder } from "react-audio-voice-recorder";
 import EmojiPicker from "emoji-picker-react";
+import ScrollToBottom from "react-scroll-to-bottom";
 
 const Chat = () => {
   const db = getDatabase();
@@ -39,11 +40,14 @@ const Chat = () => {
   let [messageInput, setMessageInput] = useState("");
   let [messageInputErr, setMessageInputErr] = useState("");
   let [messageList, setMessageList] = useState([]);
+  let [groupMemberList, setGroupMemberList] = useState([]);
+  let [groupMessageList, setGroupMessageList] = useState([]);
   let [blob, setBLob] = useState([]);
   const [imageUploadModal, setImageUploadModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState("");
   const [emoji, setEmoji] = useState(false);
+  const [member, setMember] = useState(false);
 
   const [image, setImage] = useState();
   const [cropData, setCropData] = useState("#");
@@ -60,16 +64,30 @@ const Chat = () => {
     uploadString(storageRef, dataUri, "data_url")
       .then((snapshot) => {
         getDownloadURL(storageRef).then((downloadURL) => {
-          set(push(ref(db, "singleMessage")), {
-            whoSendId: data.uid,
-            whoSendName: data.displayName,
-            whoReceiveId: activeChatName.active.id,
-            whoReceiveName: activeChatName.active.name,
-            date: `${new Date().getFullYear()}-${
-              new Date().getMonth() + 1
-            }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
-            image: downloadURL,
-          });
+          if (activeChatName.active.status == "single") {
+            set(push(ref(db, "singleMessage")), {
+              whoSendId: data.uid,
+              whoSendName: data.displayName,
+              whoReceiveId: activeChatName.active.id,
+              whoReceiveName: activeChatName.active.name,
+              date: `${new Date().getFullYear()}-${
+                new Date().getMonth() + 1
+              }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
+              image: downloadURL,
+            });
+          } else {
+            set(push(ref(db, "groupMessage")), {
+              adminId: activeChatName.active.adminId,
+              whoSendId: data.uid,
+              whoSendName: data.displayName,
+              whoReceiveId: activeChatName.active.id,
+              whoReceiveName: activeChatName.active.name,
+              date: `${new Date().getFullYear()}-${
+                new Date().getMonth() + 1
+              }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
+              image: downloadURL,
+            });
+          }
         });
       })
       .then(() => {
@@ -99,6 +117,11 @@ const Chat = () => {
       setMessageInputErr("");
     }
   };
+  let handleEnterPress = (e) => {
+    if (e.key == "Enter") {
+      handleMessageSend();
+    }
+  };
   let handleMessageSend = () => {
     if (messageInput === "") {
       setMessageInputErr("Message is empty");
@@ -117,6 +140,17 @@ const Chat = () => {
         });
       }
     } else {
+      set(push(ref(db, "groupMessage")), {
+        whoSendId: data.uid,
+        whoSendName: data.displayName,
+        whoReceiveId: activeChatName.active.id,
+        whoReceiveName: activeChatName.active.name,
+        adminId: activeChatName.active.adminId,
+        date: `${new Date().getFullYear()}-${
+          new Date().getMonth() + 1
+        }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
+        message: messageInput,
+      });
     }
   };
   useEffect(() => {
@@ -135,42 +169,33 @@ const Chat = () => {
       });
       setMessageList(arr);
     });
-  }, [activeChatName.active.id]);
+  }, [activeChatName && activeChatName.active.id]);
+  useEffect(() => {
+    const groupMessage = ref(db, "groupMessage/");
+    onValue(groupMessage, (snapshot) => {
+      let arr = [];
+      snapshot.forEach((item) => {
+        arr.push(item.val());
+      });
+      setGroupMessageList(arr);
+    });
+  }, [activeChatName && activeChatName.active.id]);
+  useEffect(() => {
+    const groupMember = ref(db, "groupMember/");
+    onValue(groupMember, (snapshot) => {
+      let arr = [];
+      snapshot.forEach((item) => {
+        arr.push(item.val().groupId + item.val().adminId);
+        arr.push(item.val().groupId + item.val().memberId);
+      });
+      setGroupMemberList(arr);
+    });
+    console.log(groupMemberList);
+    console.log(data.uid);
+  }, []);
   let handleImageUpload = (e) => {
     setImageUploadModal(!imageUploadModal);
   };
-  // let handleImageUpload = (e) => {
-  //   console.log(e.target.files[0]);
-  //   const storageRef = sref(storage, e.target.files[0].name);
-
-  //   const uploadTask = uploadBytesResumable(storageRef, e.target.files[0]);
-  //   uploadTask.on(
-  //     "state_changed",
-  //     (snapshot) => {
-  //       const progress =
-  //         (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-  //       console.log("Upload is " + progress + "% done");
-  //     },
-  //     (error) => {
-  //       console.log(error);
-  //     },
-  //     () => {
-  //       getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-  //         console.log("File available at", downloadURL);
-  //         set(push(ref(db, "singleMessage")), {
-  //           whoSendId: data.uid,
-  //           whoSendName: data.displayName,
-  //           whoReceiveId: activeChatName.active.id,
-  //           whoReceiveName: activeChatName.active.name,
-  //           date: `${new Date().getFullYear()}-${
-  //             new Date().getMonth() + 1
-  //           }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
-  //           image: downloadURL,
-  //         });
-  //       });
-  //     }
-  //   );
-  // };
 
   let handleUpload = (e) => {
     e.preventDefault();
@@ -195,22 +220,42 @@ const Chat = () => {
       const message4 = cropper.getCroppedCanvas().toDataURL();
       uploadString(storageRef, message4, "data_url").then((snapshot) => {
         getDownloadURL(storageRef).then((downloadURL) => {
-          set(push(ref(db, "singleMessage")), {
-            whoSendId: data.uid,
-            whoSendName: data.displayName,
-            whoReceiveId: activeChatName.active.id,
-            whoReceiveName: activeChatName.active.name,
-            date: `${new Date().getFullYear()}-${
-              new Date().getMonth() + 1
-            }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
-            image: downloadURL,
-          }).then(() => {
-            setLoading(false);
-            setImageUploadModal(false);
-            setImage("");
-            setCropData("#");
-            setCropper("");
-          });
+          if (activeChatName.active.status == "single") {
+            set(push(ref(db, "singleMessage")), {
+              whoSendId: data.uid,
+              whoSendName: data.displayName,
+              whoReceiveId: activeChatName.active.id,
+              whoReceiveName: activeChatName.active.name,
+              date: `${new Date().getFullYear()}-${
+                new Date().getMonth() + 1
+              }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
+              image: downloadURL,
+            }).then(() => {
+              setLoading(false);
+              setImageUploadModal(false);
+              setImage("");
+              setCropData("#");
+              setCropper("");
+            });
+          } else {
+            set(push(ref(db, "groupMessage")), {
+              adminId: activeChatName.active.adminId,
+              whoSendId: data.uid,
+              whoSendName: data.displayName,
+              whoReceiveId: activeChatName.active.id,
+              whoReceiveName: activeChatName.active.name,
+              date: `${new Date().getFullYear()}-${
+                new Date().getMonth() + 1
+              }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
+              image: downloadURL,
+            }).then(() => {
+              setLoading(false);
+              setImageUploadModal(false);
+              setImage("");
+              setCropData("#");
+              setCropper("");
+            });
+          }
         });
       });
     }
@@ -232,20 +277,38 @@ const Chat = () => {
     uploadBytes(aduioStorageRef, blob).then((snapshot) => {
       console.log("Uploaded a blob or file!");
       getDownloadURL(aduioStorageRef).then((downloadURL) => {
-        console.log(downloadURL);
-
-        set(push(ref(db, "singleMessage")), {
-          whoSendId: data.uid,
-          whoSendName: data.displayName,
-          whoReceiveId: activeChatName.active.id,
-          whoReceiveName: activeChatName.active.name,
-          date: `${new Date().getFullYear()}-${
-            new Date().getMonth() + 1
-          }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
-          audio: downloadURL,
-        }).then(() => {
-          setAudioUrl("");
-        });
+        if (activeChatName.active.statu == "single") {
+          set(push(ref(db, "singleMessage")), {
+            whoSendId: data.uid,
+            whoSendName: data.displayName,
+            whoReceiveId: activeChatName.active.id,
+            whoReceiveName: activeChatName.active.name,
+            date: `${new Date().getFullYear()}-${
+              new Date().getMonth() + 1
+            }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
+            audio: downloadURL,
+          }).then(() => {
+            setAudioUrl("");
+          });
+        } else {
+          set(push(ref(db, "groupMessage")), {
+            adminId: activeChatName.active.adminId,
+            whoSendId: data.uid,
+            whoSendName: data.displayName,
+            whoReceiveId: activeChatName.active.id,
+            whoReceiveName: activeChatName.active.name,
+            date: `${new Date().getFullYear()}-${
+              new Date().getMonth() + 1
+            }-${new Date().getDate()}   ${new Date().getHours()} ${new Date().getMinutes()}`,
+            audio: downloadURL,
+          }).then(() => {
+            setLoading(false);
+            setImageUploadModal(false);
+            setImage("");
+            setCropData("#");
+            setCropper("");
+          });
+        }
       });
     });
   };
@@ -255,6 +318,20 @@ const Chat = () => {
   let handleEmojiSelect = (emoji) => {
     setMessageInput(messageInput + emoji.emoji);
   };
+
+  useEffect(() => {
+    if (activeChatName.active.status == "single") {
+      setMember(true);
+    } else {
+      if (groupMemberList.includes(activeChatName.active.id + data.uid)) {
+        setMember(true);
+      } else {
+        setMember(false);
+      }
+    }
+  }, [activeChatName && activeChatName.active.id]);
+  console.log(member);
+
   return (
     <>
       <div className="mr-9 rounded-[20px]  pr-12 pl-10 shadow-search">
@@ -271,7 +348,7 @@ const Chat = () => {
           </div>
           <div>
             <h3 className="font-poppins text-2xl font-semibold">
-              {activeChatName.active.name}
+              {activeChatName.active && activeChatName.active.name}
             </h3>
             <p className="font-regular font-poppins text-sm text-[rgba(0,0,0,.85%)]">
               Online
@@ -282,86 +359,167 @@ const Chat = () => {
           </div>
         </div>
         <div className="border-b border-solid border-[rgba(0,0,0,.25)]">
-          <div className=" h-[340px] overflow-y-scroll">
-            {activeChatName.active.status == "single" ? (
-              messageList.map((item) =>
-                item.whoSendId == data.uid ? (
-                  item.message ? (
-                    <div className="mr-6 py-2 text-right">
-                      <p className="relative mr-2.5 inline-block bg-button px-12 py-[13px] text-left font-poppins text-base font-medium text-white">
+          <ScrollToBottom className=" h-[340px]">
+            {activeChatName.active && activeChatName.active.status == "single"
+              ? messageList.map((item) =>
+                  item.whoSendId == data.uid ? (
+                    item.message ? (
+                      <div className="mr-6 py-2 text-right">
+                        <p className="relative mr-2.5 inline-block bg-button px-12 py-[13px] text-left font-poppins text-base font-medium text-white">
+                          {item.message}
+                          <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                        </p>
+                        <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                          {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                        </p>
+                      </div>
+                    ) : item.image ? (
+                      <div className="mr-6 py-2 text-right">
+                        <p className="relative mr-2.5 inline-block bg-button px-6 py-[13px] text-left font-poppins text-base font-medium text-white">
+                          <ModalImage
+                            className="h-[350px] w-[250px]"
+                            small={item.image}
+                            large={item.image}
+                            alt="Image"
+                          />
+                          <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                        </p>
+                        <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                          {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mr-6 py-2 text-right">
+                        <p className="relative mr-2.5 inline-block bg-button px-6 py-[13px] text-left font-poppins text-base font-medium text-white">
+                          <audio controls src={item.audio}></audio>
+                          <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                        </p>
+                        <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                          {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                        </p>
+                      </div>
+                    )
+                  ) : item.message ? (
+                    <div className="py-2">
+                      <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-12 py-[13px] font-poppins text-base font-medium">
                         {item.message}
-                        <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                        <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
                       </p>
                       <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
                         {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
                       </p>
                     </div>
                   ) : item.image ? (
-                    <div className="mr-6 py-2 text-right">
-                      <p className="relative mr-2.5 inline-block bg-button px-6 py-[13px] text-left font-poppins text-base font-medium text-white">
+                    <div className="py-2">
+                      <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-6 py-[13px] font-poppins text-base font-medium">
                         <ModalImage
                           className="h-[350px] w-[250px]"
                           small={item.image}
                           large={item.image}
                           alt="Image"
                         />
-                        <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                        <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
                       </p>
                       <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
                         {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
                       </p>
                     </div>
                   ) : (
-                    <div className="mr-6 py-2 text-right">
-                      <p className="relative mr-2.5 inline-block bg-button px-6 py-[13px] text-left font-poppins text-base font-medium text-white">
-                        <audio controls src={item.audio}></audio>
-                        <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                    <div className="py-2">
+                      <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-6 py-[13px] font-poppins text-base font-medium">
+                        <audio src={item.audio} controls></audio>
+                        <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
                       </p>
                       <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
                         {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
                       </p>
                     </div>
                   )
-                ) : item.message ? (
-                  <div className="py-2">
-                    <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-12 py-[13px] font-poppins text-base font-medium">
-                      {item.message}
-                      <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
-                    </p>
-                    <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
-                      {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
-                    </p>
-                  </div>
-                ) : item.image ? (
-                  <div className="py-2">
-                    <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-6 py-[13px] font-poppins text-base font-medium">
-                      <ModalImage
-                        className="h-[350px] w-[250px]"
-                        small={item.image}
-                        large={item.image}
-                        alt="Image"
-                      />
-                      <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
-                    </p>
-                    <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
-                      {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="py-2">
-                    <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-6 py-[13px] font-poppins text-base font-medium">
-                      <audio src={item.audio} controls></audio>
-                      <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
-                    </p>
-                    <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
-                      {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
-                    </p>
-                  </div>
                 )
-              )
-            ) : (
-              <h1>Group Message</h1>
-            )}
+              : member &&
+                groupMessageList.map((item) =>
+                  item.whoSendId == data.uid
+                    ? item.message
+                      ? item.whoReceiveId == activeChatName.active.id && (
+                          <div className="mr-6 py-2 text-right">
+                            <p className="relative mr-2.5 inline-block bg-button px-12 py-[13px] text-left font-poppins text-base font-medium text-white">
+                              {item.message}
+                              <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                            </p>
+                            <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                              {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                            </p>
+                          </div>
+                        )
+                      : item.image
+                      ? item.whoReceiveId == activeChatName.active.id && (
+                          <div className="mr-6 py-2 text-right">
+                            <p className="relative mr-2.5 inline-block bg-button px-6 py-[13px] text-left font-poppins text-base font-medium text-white">
+                              <ModalImage
+                                className="h-[350px] w-[250px]"
+                                small={item.image}
+                                large={item.image}
+                                alt="Image"
+                              />
+                              <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                            </p>
+                            <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                              {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                            </p>
+                          </div>
+                        )
+                      : item.whoReceiveId == activeChatName.active.id && (
+                          <div className="mr-6 py-2 text-right">
+                            <p className="relative mr-2.5 inline-block bg-button px-6 py-[13px] text-left font-poppins text-base font-medium text-white">
+                              <audio controls src={item.audio}></audio>
+                              <BsFillTriangleFill className="absolute right-[-10px] bottom-[-1px] text-xl text-button" />
+                            </p>
+                            <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                              {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                            </p>
+                          </div>
+                        )
+                    : item.message
+                    ? item.whoReceiveId == activeChatName.active.id && (
+                        <div className="py-2">
+                          <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-12 py-[13px] font-poppins text-base font-medium">
+                            {item.message}
+                            <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
+                          </p>
+                          <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                            {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                          </p>
+                        </div>
+                      )
+                    : item.image
+                    ? item.whoReceiveId == activeChatName.active.id && (
+                        <div className="py-2">
+                          <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-6 py-[13px] font-poppins text-base font-medium">
+                            <ModalImage
+                              className="h-[350px] w-[250px]"
+                              small={item.image}
+                              large={item.image}
+                              alt="Image"
+                            />
+                            <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
+                          </p>
+                          <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                            {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                          </p>
+                        </div>
+                      )
+                    : item.whoReceiveId == activeChatName.active.id && (
+                        <div className="py-2">
+                          <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-6 py-[13px] font-poppins text-base font-medium">
+                            <audio src={item.audio} controls></audio>
+                            <BsFillTriangleFill className="absolute left-[-10px] bottom-[-1px] text-xl text-[#F1F1F1]" />
+                          </p>
+                          <p className="font-poppins text-xs font-medium text-[rgba(0,0,0,.25)]">
+                            {moment(item.date, "YYYYMMDD hh:mm").fromNow()}
+                          </p>
+                        </div>
+                      )
+                )}
             {/* received message */}
             {/* <div className="py-2">
               <p className="relative ml-2.5 inline-block bg-[#F1F1F1] px-12 py-[13px] font-poppins text-base font-medium">
@@ -452,71 +610,78 @@ const Chat = () => {
                 Today, 2:01pm
               </p>
             </div> */}
-          </div>
+          </ScrollToBottom>
         </div>
         <p className="text-dm mb-[-30px] text-sm font-bold text-red-500">
           {messageInputErr}
         </p>
-        <div className="relative mt-[30px] flex py-9">
-          <div className="">
-            {!audioUrl && (
-              <>
-                <input
-                  onChange={handleMessageInput}
-                  className=" w-[500px] rounded-xl border-transparent bg-[#f1f1f1] p-4 pr-12 focus:border-transparent focus:ring-0"
-                  value={messageInput}
-                />
+        {member ? (
+          <div className="relative mt-[30px] flex py-9">
+            <div className="">
+              {!audioUrl && (
+                <>
+                  <input
+                    onChange={handleMessageInput}
+                    onKeyUp={handleEnterPress}
+                    className=" w-[500px] rounded-xl border-transparent bg-[#f1f1f1] p-4 pr-12 focus:border-transparent focus:ring-0"
+                    value={messageInput}
+                  />
 
-                <BsCamera
-                  onClick={() => setCameraOpen(!cameraOpen)}
-                  className="absolute right-[86px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
-                />
-                <BsEmojiLaughing
-                  onClick={handleEmoji}
-                  className="absolute right-[114px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
-                />
-                {emoji && (
-                  <div className="absolute top-[-414px] z-50 text-xl text-[rgba(0,0,0,.5)]">
-                    <EmojiPicker onEmojiClick={handleEmojiSelect} />
+                  <BsCamera
+                    onClick={() => setCameraOpen(!cameraOpen)}
+                    className="absolute right-[86px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
+                  />
+                  <BsEmojiLaughing
+                    onClick={handleEmoji}
+                    className="absolute right-[114px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
+                  />
+                  {emoji && (
+                    <div className="absolute top-[-414px] z-50 text-xl text-[rgba(0,0,0,.5)]">
+                      <EmojiPicker onEmojiClick={handleEmojiSelect} />
+                    </div>
+                  )}
+
+                  <FcGallery
+                    onClick={handleImageUpload}
+                    className="absolute right-[142px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
+                  />
+                  <AudioRecorder
+                    onRecordingComplete={(blob) => addAudioElement(blob)}
+                  />
+                </>
+              )}
+              {audioUrl && (
+                <div className=" flex  h-auto w-[500px] rounded-xl border-transparent bg-white p-4 pr-12 shadow-chat focus:border-transparent focus:ring-0">
+                  <audio className="" src={audioUrl} controls></audio>
+                  <div
+                    className="nunito font-regular ml-3 inline cursor-pointer bg-button p-2 text-base text-white"
+                    onClick={handleAudioUpload}
+                  >
+                    Send
                   </div>
-                )}
-
-                <FcGallery
-                  onClick={handleImageUpload}
-                  className="absolute right-[142px] top-[43%] text-xl text-[rgba(0,0,0,.5)]"
-                />
-                <AudioRecorder
-                  onRecordingComplete={(blob) => addAudioElement(blob)}
-                />
-              </>
-            )}
-            {audioUrl && (
-              <div className=" flex  h-auto w-[500px] rounded-xl border-transparent bg-white p-4 pr-12 shadow-chat focus:border-transparent focus:ring-0">
-                <audio className="" src={audioUrl} controls></audio>
-                <div
-                  className="nunito font-regular ml-3 inline cursor-pointer bg-button p-2 text-base text-white"
-                  onClick={handleAudioUpload}
-                >
-                  Send
+                  <div
+                    className="nunito font-regular ml-3 inline cursor-pointer bg-button p-2 text-base text-white"
+                    onClick={() => setAudioUrl("")}
+                  >
+                    Remove
+                  </div>
                 </div>
-                <div
-                  className="nunito font-regular ml-3 inline cursor-pointer bg-button p-2 text-base text-white"
-                  onClick={() => setAudioUrl("")}
-                >
-                  Remove
-                </div>
+              )}
+            </div>
+            {!audioUrl && (
+              <div className="ml-5 bg-button p-4">
+                <FaTelegramPlane
+                  onClick={handleMessageSend}
+                  className="text-2xl text-white"
+                />
               </div>
             )}
           </div>
-          {!audioUrl && (
-            <div className="ml-5 bg-button p-4">
-              <FaTelegramPlane
-                onClick={handleMessageSend}
-                className="text-2xl text-white"
-              />
-            </div>
-          )}
-        </div>
+        ) : (
+          <h3 className="nunito p-10 text-xl font-semibold text-primary">
+            You are not a member of this group
+          </h3>
+        )}
       </div>
       {cameraOpen && (
         <div className="fixed top-0 left-0 z-40 flex h-full w-full items-center justify-center bg-[rgba(0,0,0,.8)]">

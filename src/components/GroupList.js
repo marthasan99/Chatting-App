@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 const GroupList = () => {
   const db = getDatabase();
   let data = useSelector((state) => state.userLoginInfo.userInfo);
+  let activeChatName = useSelector((state) => state.activeChat);
   let [show, setShow] = useState(true);
   let [groupName, setGroupName] = useState("");
   let [groupNameErr, setGroupNameErr] = useState("");
@@ -12,6 +13,7 @@ const GroupList = () => {
   let [groupTagNameErr, setGroupTagNameErr] = useState("");
   let [groupList, setGroupList] = useState([]);
   let [groupJoinRequestList, setGroupJoinRequestList] = useState([]);
+  let [groupMemberList, setGroupMemberList] = useState([]);
 
   let handleGroupButton = () => {
     setShow(!show);
@@ -73,6 +75,19 @@ const GroupList = () => {
       setGroupJoinRequestList(arr);
     });
   }, []);
+  useEffect(() => {
+    const groupMember = ref(db, "groupMember/");
+    onValue(groupMember, (snapshot) => {
+      let arr = [];
+      snapshot.forEach((item) => {
+        arr.push(item.val().groupId + item.val().adminId);
+        arr.push(item.val().groupId + item.val().memberId);
+      });
+      setGroupMemberList(arr);
+    });
+    console.log(groupMemberList);
+    console.log(data.uid);
+  }, []);
 
   let handleGroupJoin = (item) => {
     console.log(item);
@@ -131,6 +146,14 @@ const GroupList = () => {
                 <div className="">
                   <button className="bg-button  px-5 font-poppins text-xl font-semibold text-white">
                     Pending
+                  </button>
+                </div>
+              ) : groupMemberList.includes(
+                  activeChatName.active.id + data.uid
+                ) ? (
+                <div className="">
+                  <button className="bg-button  px-5 font-poppins text-xl font-semibold text-white">
+                    Joined
                   </button>
                 </div>
               ) : (
