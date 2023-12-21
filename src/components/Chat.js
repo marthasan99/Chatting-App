@@ -53,7 +53,7 @@ const Chat = () => {
   const [cropData, setCropData] = useState("#");
   const [cropper, setCropper] = useState();
 
-  let activeChatName = useSelector((state) => state.activeChat);
+  let activeChatName = useSelector((state) => state.activeChat) || null;
   let data = useSelector((state) => state.userLoginInfo.userInfo);
   function handleTakePhoto(dataUri) {
     // Do stuff with the photo...

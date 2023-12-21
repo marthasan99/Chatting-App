@@ -3,7 +3,9 @@ import { createSlice } from "@reduxjs/toolkit";
 export const activeGroupSlice = createSlice({
   name: "activeGroupSlice",
   initialState: {
-    active: 0,
+    active: localStorage.getItem("activeChat")
+      ? JSON.parse(localStorage.getItem("activeChat"))
+      : 0,
   },
   reducers: {
     activeGroup: (state, action) => {

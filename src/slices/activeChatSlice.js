@@ -5,7 +5,7 @@ export const activeChatSlice = createSlice({
   initialState: {
     active: localStorage.getItem("activeChat")
       ? JSON.parse(localStorage.getItem("activeChat"))
-      : null,
+      : 0,
   },
   reducers: {
     activeChat: (state, action) => {
